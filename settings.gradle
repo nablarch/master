@@ -1,0 +1,46 @@
+
+List<String> subModuleCandidates = getSubModuleCandidates()
+
+def subModules = subModuleCandidates.findAll {
+  // ここでサブモジュールをフィルタできます。
+  return true
+}
+
+
+println "submodules are ${subModules}"
+
+includeFlat(subModules.toArray(new String[subModules.size()]))
+
+/**
+ * サブモジュール名の一覧を取得する。
+ */
+List<String> getSubModuleCandidates() {
+
+  def baseDir = new File('..')
+  def subModuleDirs = baseDir.listFiles(new FileFilter() {
+    @Override
+    boolean accept(File pathname) {
+      if (pathname.name.startsWith(".")) {
+        return false
+      }
+      if (pathname.name.equals('master')) {
+        return false
+      }
+      if (!pathname.directory) {
+        return false
+      }
+      File buildScript = new File(pathname, "build.gradle")
+
+      if (buildScript.parentFile.equals(baseDir)) {
+        return false
+      }
+      return buildScript.exists();
+    }
+  })
+
+  return subModuleDirs.collect {
+    it.name
+  }
+
+}
+

@@ -1,0 +1,29 @@
+configurations {
+  publishedDoclet
+}
+
+dependencies {
+  publishedDoclet 'com.nablarch.tool:nablarch-toolbox:1.4.3'
+}
+
+/**
+ * 全モジュールのJavaDocを作成する。
+ */
+task allDocs(type: Javadoc) {
+  source subprojects.collect {
+    pj -> pj.sourceSets.main.allJava
+  }
+
+  classpath = files(subprojects.collect {
+    pj -> pj.sourceSets.main.compileClasspath
+  })
+  def dest = new File(buildDir, 'docs')
+  destinationDir = dest
+  options {
+    encoding = project.encoding
+    //doclet = 'nablarch.tool.published.doclet.PublishedDoclet'
+    //docletpath = configurations.publishedDoclet.files.asType(List)
+    //addStringOption("tag", "architect")
+    //addStringOption("output", "${dest}/openApi.config")
+  }
+}

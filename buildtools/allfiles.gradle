@@ -1,0 +1,184 @@
+import java.nio.file.Paths;
+
+File nabDir = new File(rootProject.buildDir, 'nablarch')
+//File nabClassesDir = new File("${buildDir}/classes/main/")
+File nabSourcesDir = new File(nabDir, 'sources')
+File nabResourcesDir = new File(nabDir, 'resources')
+// subprojectからソースファイルをコピーする
+task copyTargetSources << {
+  nabSourcesDir.mkdirs()
+  rootProject.subprojects.each { sub ->
+    sub.sourceSets.main.java.srcDirs.each { srcDir ->
+      if (srcDir.exists()) {
+        logger.lifecycle("copy source files from ${srcDir} into ${nabSourcesDir}")
+        copy {
+          from srcDir
+          into nabSourcesDir
+        }
+      }
+    }
+  }
+}
+
+// subprojectからリソースファイルをコピーする
+task copyResources << {
+  nabSourcesDir.mkdirs()
+  rootProject.subprojects.each { sub ->
+    sub.sourceSets.main.resources.srcDirs.each { srcDir ->
+      if (srcDir.exists()) {
+        logger.lifecycle("copy resource files from ${srcDir} into ${nabResourcesDir}")
+        copy {
+          from srcDir
+          into nabResourcesDir
+        }
+      }
+    }
+  }
+}
+
+task allPackage << {
+
+  def usage = new PackageUsage()
+  subprojects.each { Project sub ->
+    ['src/main/java'].each {
+      File srcDir = new File(sub.projectDir, "${it}")
+      if (!srcDir.exists()) {
+        return
+      }
+      srcDir.eachDirRecurse { File dir ->
+        if (hasJavaFiles(dir)) {
+          def path = relativize(dir, srcDir);
+          def pkg = path.toString().replace('\\', '.')
+          usage.add(pkg, sub.name)
+        }
+      }
+    }
+  }
+  String result = [Usage.moduleNames, usage.toString()].join('\r\n')
+  new File("${buildDir}/allpackage.csv").write(result)
+}
+
+// key=package, value=user(module name)
+class PackageUsage extends TreeMap<String, Usage> {
+  static final String DELIMITER = ','
+
+  void add(String pkg, String module) {
+    if (!containsKey(pkg)) {
+      put(pkg, new Usage(pkg))
+    }
+    get(pkg).addUser(module)
+  }
+
+
+  @Override
+  public String toString() {
+    def ret = []
+    entrySet().each {
+      ret << "${it.key}${DELIMITER}${it.value}"
+    }
+    ret.join('\r\n')
+  }
+}
+
+class Usage {
+
+  static final String DELIMITER = PackageUsage.DELIMITER
+  final String pkg;
+
+  Usage(String pkg) {
+    this.pkg = pkg
+  }
+
+  void addUser(String module) {
+    if (!usage.containsKey(module)) {
+      println "invalid module name = ${module}"
+      //throw new IllegalArgumentException(module)
+      return
+    }
+    usage.put(module, true)
+  }
+
+  static String getModuleNames() {
+    return DELIMITER + new Usage(null).usage.keySet().join(DELIMITER)
+  }
+
+  LinkedHashMap<String, Boolean> usage = [
+          'nablarch-core'                   : false,
+          'nablarch-core-validation'        : false,
+          'nablarch-core-dataformat'        : false,
+          'nablarch-core-jdbc'              : false,
+
+          'nablarch-fw'                     : false,
+
+          'nablarch-common-jdbc'        : false,
+          'nablarch-common-encryption'      : false,
+          'nablarch-common-exclusivecontrol': false,
+          'nablarch-common-auth'            : false,
+          'nablarch-common-code'            : false,
+          'nablarch-common-date'            : false,
+          'nablarch-common-beans'           : false,
+          'nablarch-common-dao'             : false,
+
+          'nablarch-web'                    : false,
+          'nablarch-web-extension'          : false,
+          'nablarch-web-tag'                : false,
+
+          'nablarch-standalone'             : false,
+          'nablarch-batch'                  : false,
+          'nablarch-messaging'              : false,
+          'nablarch-messaging-mom'          : false,
+          'nablarch-messaging-http'         : false,
+
+          'nablarch-mail-sender'            : false,
+
+
+  ]
+
+
+  @Override
+  public String toString() {
+
+    usage.values().collect({
+      return it ? 'o' : ''
+    }).join(DELIMITER)
+  }
+}
+
+
+java.nio.file.Path relativize(File abs, File base) {
+  java.nio.file.Path pathAbsolute = Paths.get(abs.toURI());
+  java.nio.file.Path pathBase = Paths.get(base.toURI());
+  return pathBase.relativize(pathAbsolute);
+}
+
+boolean hasJavaFiles(File dir) {
+  boolean hasJavaFile = false
+  dir.eachFile {
+    if (it.isFile() && it.name.endsWith("java")) {
+      hasJavaFile = true
+    }
+  }
+  return hasJavaFile
+}
+
+File[] getDirsOf(File sourceDir) {
+  return sourceDir.listFiles(new FileFilter() {
+    boolean accept(File f) {
+      return f.isDirectory()
+    }
+  })
+}
+
+
+//task alldocs(type: Javadoc) {
+//
+//  title = "Nablarch ${version} API Documentation"
+//  destinationDir = new File(project.buildDir, 'docs/javadoc')
+//  options.encoding = project.encoding
+//  subprojects.each { Project sub ->
+//    source sub.sourceSets.main.java
+//    classpath += sub.sourceSets.main.compileClasspath
+//  }
+//
+//}
+

@@ -1,0 +1,38 @@
+<?xml version="1.0"?>
+
+<!DOCTYPE suppressions PUBLIC
+    "-//Puppy Crawl//DTD Suppressions 1.1//EN"
+    "http://www.puppycrawl.com/dtds/suppressions_1_1.dtd">
+
+<suppressions>
+    <suppress checks="VisibilityModifierCheck"
+        files="ConnectionFactorySupport.java"
+        lines="16,19,22" />
+    <suppress checks="GenericWhitespaceCheck"
+        files="BasicSqlParameterParser.java"
+        lines="154" />
+    <suppress checks="NeedBracesCheck"
+        files="SqlResultSet.java"
+        lines="28" />
+    <suppress checks="EmptyStatementCheck"
+        files="SqlResultSet.java"
+        lines="28" />
+    <suppress checks="EmptyBlockCheck"
+        files="FileUtil.java"
+        lines="39,40" />
+    <suppress files="BasicServiceAvailability.java"
+        checks="WhitespaceAroundCheck"
+        lines="107" />
+    <suppress files="BasicCodeLoader.java"
+        checks="WhitespaceAroundCheck"
+        lines="134,167" />
+    <suppress files="FastTableIdGenerator.java"
+        checks="WhitespaceAroundCheck"
+        lines="49" />
+    <suppress files="BasicPermissionFactory.java"
+        checks="WhitespaceAroundCheck"
+        lines="171" />
+    <suppress files="BasicStringResourceLoader.java"
+        checks="WhitespaceAroundCheck"
+        lines="151,216" />
+</suppressions>

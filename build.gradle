@@ -1,0 +1,43 @@
+// -*- mode: groovy; coding: utf-8 -*-
+group = 'com.nablarch.framework'
+version = '1.0.1'
+
+allprojects {
+  configurations.all {
+    resolutionStrategy.cacheDynamicVersionsFor 0, 'minutes'
+    resolutionStrategy.cacheChangingModulesFor 0, 'hours'
+  }
+}
+
+//apply from: 'buildtools/allfiles.gradle'
+apply from: 'buildtools/dep.gradle'
+
+/**
+ * nablarch-gradle-pluginのバージョンを一括で変更します。
+ *
+ * [例: 1.0.1にバージョンを変更する場合]
+ * <pre>
+ * gradle -PnewNablarchGradlePluginVersion=1.0.1 updateNablarchPluginVersion
+ * </pre>
+ */
+task updateNablarchPluginVersion << {
+  final key = 'newNablarchGradlePluginVersion'
+  assert project.hasProperty(key);
+  def newVersion = project[key]
+  logger.lifecycle("'nablarchGradlePluginVersionを${newVersion}に変更します。")
+
+  subprojects.each { pj ->
+    def props = new File(pj.projectDir, "gradle.properties");
+    def newContent = props.readLines("UTF-8").collect { line ->
+      return (line =~ /^nablarchGradlePluginVersion=(.*)$/).matches() ?
+              "nablarchGradlePluginVersion=${newVersion}" :
+              line
+    }.join('\n')
+    props.text = newContent
+  }
+}
+
+
+task wrapper(type: Wrapper) {
+  gradleVersion = '2.4'
+}

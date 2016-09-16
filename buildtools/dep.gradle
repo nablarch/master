@@ -1,0 +1,132 @@
+
+
+// ---------- 依存関係の図を出力する
+
+class Dep {
+  final String from
+  final String to
+
+  Dep(def from, def to) {
+    this.from = from as String
+    this.to = to as String
+  }
+
+  @Override
+  String toString() {
+    return "\"${from}\" -> \"${to}\";"
+  }
+}
+
+class DotNode {
+  final Project prj
+
+  DotNode(Project prj) {
+    this.prj = prj
+  }
+
+  String getDesc() {
+    return prj.description ?: ''
+  }
+
+  String toString() {
+    if (desc.isEmpty()) {
+      return ''
+    }
+    return "\"${prj.name}\" [ tooltip=\"${desc}\" , fillcolor=\"${getColorOf(prj.name)}\"]"
+
+  }
+  static final Map<String, String> colors = [
+          'nablarch-core'     : '#87cefa',
+          'nablarch-fw'       : '#a52a2a',
+          'nablarch-common'   : '#32cd32',
+  ]
+
+  static getColorOf(String moduleName) {
+    def group = (moduleName =~ /(nablarch\-[^-]+)\-*.*/)[0][1]
+    return colors.get(group) ?: "#FFFFFF"
+  }
+}
+
+
+
+
+task dependenyDot << {
+  List<DotNode> nodes = []
+  List<Dep> deps = []
+  project.subprojects.each { pj ->
+    nodes << new DotNode(pj)
+    pj.configurations.findAll {
+      return it.name == 'compile'
+    }.each { conf ->
+      conf.allDependencies.findAll {
+        return it.name =~ /^nablarch-/
+      }.each { dep ->
+        deps << new Dep(pj.name, dep.name)
+
+      }
+    }
+  }
+
+  outputDeps(project.buildDir, nodes, deps)
+}
+
+void outputDeps(File buildDir, List<DotNode> nodes, List<Dep> deps) {
+  String dot = dot(nodes, deps)
+  String htmlContent = htmlContent(dot)
+
+  def outputDir = new File("${buildDir}/dependencies/")
+  outputDir.mkdirs()
+  writeHtml(outputDir, htmlContent)
+  writeDot(outputDir, dot)
+}
+
+void writeHtml(File outputDir, String htmlContent) {
+  def htmlFile = new File(outputDir, 'dependency.html')
+  htmlFile.createNewFile()
+  htmlFile.write(htmlContent, 'UTF-8')
+}
+
+void writeDot(File outputDir, String dot) {
+  def dotFile = new File(outputDir, 'dependency.dot')
+  dotFile.createNewFile()
+  dotFile.write(dot, 'UTF-8')
+  def dotCmd = "dot -Tsvg ${dotFile} -o ${outputDir}/dependencies.svg";
+  logger.lifecycle(dotCmd)
+  dotCmd.execute()
+}
+
+String htmlContent(String dot) {
+  return """\
+<html>
+<body>
+<script src="https://github.com/mdaines/viz.js/releases/download/v1.3.0/viz.js"></script>
+<script>
+window.onload = function() {
+  var input = document.getElementById("input").value;
+  var result = Viz(input, 'svg', 'dot');
+  document.getElementById("output").innerHTML = result;
+}
+</script>
+<textarea id="input" style="display:none;">
+${dot}
+</textarea>
+<div id="output"></div>
+</body>
+</html>
+"""
+}
+
+String dot(List<DotNode> nodes, List<Dep> deps) {
+  return """\
+digraph sample {
+  graph [rankdir = RL, concentrate = true];
+  node [shape = box, style=filled, fontname="Arial" ];
+  // modules
+  ${nodes.join('\n')}
+  // dependencies
+  ${deps.join('\n')}
+}
+"""
+}
+
+
